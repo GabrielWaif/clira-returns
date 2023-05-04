@@ -13,7 +13,8 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Components {
-    Add { id: String },
+    // Adds hours to the given project id
+    Add { id: String, time: String, date: Option<String>, description: Option<String> },
     Origin(OriginCommand)
 }
 
@@ -31,15 +32,18 @@ pub struct OriginCommand {
 #[derive(Debug, Subcommand)]
 pub enum OriginCommands {
     Add { name: String, url: String },
-    Remove { name: String }
+    Remove { name: String },
+    Use { name: String }
 } 
 
 fn main() {
     let cli = Cli::parse();
 
     match &cli.component {
-        Components::Add { id } => {
-            println!("{}", id);
+        Components::Add { id, time, date, description } => {
+            let description = description.as_ref().unwrap();
+            let date = date.as_ref().unwrap();
+            println!("{} - {} {}", date, id, description);
             todo!();
         },
         Components::Origin( c ) => {
@@ -50,6 +54,10 @@ fn main() {
                 }
                 OriginCommands::Remove { name } => {
                     println!("Removed origin {:?}", name);
+                    todo!();
+                },
+                OriginCommands::Use { name } => {
+                    println!("Changed origin to {:?}", name);
                     todo!();
                 },
             }
