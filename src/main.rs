@@ -1,56 +1,59 @@
-use clap::{ Parser, Subcommand, Args};
+use crate::command_structure::{ Cli, OriginCommands, Components, TesteRespose };
+use crate::dtos::AddWorklogDto;
+use clap::Parser;
+use reqwest::Client;
+use chrono::prelude::*;
+mod command_structure;
+mod dtos;
 
-#[derive(Parser)]
-#[command(name = "Clira Returns")]
-#[command(author = "Gabriel Rosa <gabrielrosargc@hotmail.com>")]
-#[command(version = "0.1")]
-#[command(about = "Jira cli client for any Jira project", long_about = None)]
-
-struct Cli {
-    #[clap(subcommand)]
-    pub component: Components,
-}
-
-#[derive(Debug, Subcommand)]
-pub enum Components {
-    // Adds hours to the given project id
-    Add { id: String, time: String, date: Option<String>, description: Option<String> },
-    Origin(OriginCommand)
-}
-
-#[derive(Debug, Args)]
-pub struct AddCommand{
-    id: String
-}
-
-#[derive(Debug, Args)]
-pub struct OriginCommand {
-    #[clap(subcommand)]
-    pub command: OriginCommands,
-} 
-
-#[derive(Debug, Subcommand)]
-pub enum OriginCommands {
-    Add { name: String, url: String },
-    Remove { name: String },
-    Use { name: String }
-} 
-
-fn main() {
+#[tokio::main]
+async fn main() {
+    let token = "OTU5OTA2MTIxOTQ1Ogv6E6j8H7FWbFPvbt30uqSW02oD";
     let cli = Cli::parse();
 
     match &cli.component {
-        Components::Add { id, time, date, description } => {
-            let description = description.as_ref().unwrap();
-            let date = date.as_ref().unwrap();
-            println!("{} - {} {}", date, id, description);
-            todo!();
+        Components::Add { id, time, date, description } => { 
+            let mut body: AddWorklogDto =  AddWorklogDto::new("".to_string(), "2023-05-06T09:00:00.000-0700".to_string(), 3600 );
+            match date {
+                Some( value ) => {
+                    //let date = .expect("Invalid date.");
+                    let date = match DateTime::parse_from_str(format!("{} -03:00", value).as_str(), "%Y-%m-%d %H:%M:%S %z") {
+                        Ok( ok_date ) => ok_date,
+                        Err( error ) => {
+                            println!("Invalid date param. error={}", error);
+                            std::process::exit(0);
+                        }  
+                    };
+                    let formated_date = date.format("%Y-%m-%dT%H:%M:%S.%3f%z").to_string();
+                    println!("{}", formated_date);
+                    body.set_started(formated_date.to_string())
+                }
+                None => {}
+            }
+
+            match description {
+                Some( value ) => body.set_comment(value.to_owned()),
+                None => {}
+            }
+
+            let client = Client::new();
+            let url = format!("https://jira.weg.net/rest/api/2/issue/{}/worklog", id);
+            let result = client.post(url)
+                .json(&body)
+                .header("Authorization", format!("{} {}", "Bearer", token))
+                .send()
+                .await
+                .unwrap();
+
+            println!("{:?}", result);
         },
         Components::Origin( c ) => {
             match &c.command {
                 OriginCommands::Add { name, url } => {
                     println!("Added new origin {:?} with url {:?}", name, url);
-                    todo!();
+
+                    let result = reqwest::get("https://jira.weg.net/secure/CreateWorklog.jspa").await.unwrap().json::<TesteRespose>().await.unwrap();
+                    print!("{:?}", result);
                 }
                 OriginCommands::Remove { name } => {
                     println!("Removed origin {:?}", name);
