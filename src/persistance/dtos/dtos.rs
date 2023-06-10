@@ -16,3 +16,9 @@ impl AddWorklogDto {
         self.comment = comment;
     }
 }
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct TesteRespose {
+    id: i32,
+    title: String
+}
