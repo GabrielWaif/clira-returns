@@ -33,6 +33,9 @@ pub enum BaseCommands {
         #[arg(short, long)]
         description: Option<String>,
     },
+    Get {
+        id: String,
+    },
     Origin(BaseOrigin),
 }
 
@@ -47,10 +50,17 @@ impl BaseCli {
             } => {
                 BaseCli::add_command(id, time, date, description).await;
             }
+            BaseCommands::Get{ id } => {
+                BaseCli::get_command(&id).await;
+            }
             BaseCommands::Origin(c) => {
                 BaseOrigin::execute(&c).await;
             }
         };
+    }
+
+    async fn get_command(id: &String) {
+        let result = JiraIntegration::get_work(id).await;
     }
 
     async fn add_command(
@@ -61,7 +71,7 @@ impl BaseCli {
     ) {
 
         let duration: i32 = time.parse().unwrap_or_else(|_| {
-            parse_duration(time).unwrap_or_else(|_| Duration::ZERO).as_millis() as i32
+            parse_duration(time).unwrap_or_else(|_| Duration::ZERO).as_secs() as i32
         }); 
 
         let mut body: AddWorklogDto = AddWorklogDto::new(
